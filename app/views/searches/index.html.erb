@@ -1,0 +1,87 @@
+<header>
+  <h1>Real-Time Search Analytics</h1>
+</header>
+
+<div class="container">
+  <form id="searchForm">
+    <label for="searchInput">Search:</label>
+    <input type="text" id="searchInput" name="searchInput" placeholder="Type your search term...">
+  </form>
+
+  <br/>
+  <h2>Popular Searches</h2>
+  <div id="popularSearches">
+    <% @popular_searches.each do |search, count| %>
+      <p><%= search %>: <%= count %> times</p>
+    <% end %>
+  </div>
+</div>
+
+<footer>
+  &copy; 2024 Murilo Roque
+</footer>
+
+<script>
+  const searchInput = document.getElementById('searchInput');
+  const popularSearchesDiv = document.getElementById('popularSearches');
+
+  let searchInputValue = '';
+  let typingTimer;
+  const typingDelay = 500;
+
+  function search() {
+    const searchTerm = searchInput.value.trim().toLowerCase();
+
+    if (searchTerm && searchTerm !== searchInputValue) {
+      searchInputValue = searchTerm;
+
+      const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+      fetch('/searches', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken
+        },
+        body: JSON.stringify({ term: searchTerm })
+      })
+        .then(response => response.json())
+        .then(updatePopularSearches)
+        .catch(handleError);
+    }
+  }
+
+  function updatePopularSearches(data) {
+    if (data.status === 'success') {
+      clearPopularSearches();
+      appendNewSearchResults(data.popular_searches);
+    } else {
+      alert(data.message);
+    }
+  }
+
+  function clearPopularSearches() {
+    popularSearchesDiv.innerHTML = '';
+  }
+
+  function appendNewSearchResults(results) {
+    if (Object.keys(results).length > 0) {
+      Object.entries(results).forEach(search => {
+        const paragraph = document.createElement('p');
+        paragraph.innerHTML = `${search[0]}: ${search[1]} times`;
+        popularSearchesDiv.appendChild(paragraph);
+      });
+    }
+  }
+
+  function handleError(error) {
+    console.error('Error:', error);
+  }
+
+  function onInput() {
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(search, typingDelay);
+  }
+
+  searchInput.addEventListener('input', onInput);
+</script>
