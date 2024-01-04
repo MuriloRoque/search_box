@@ -8,6 +8,7 @@ This application provides real-time search analytics, allowing users to track an
 - [System dependencies](#system-dependencies)
 - [Database creation](#database-creation)
 - [How to run the test suite](#how-to-run-the-test-suite)
+- [How it works](#how-it-works)
 
 ## Ruby version
 
@@ -37,3 +38,9 @@ Run the test suite to ensure the application functions correctly:
 ```bash
 rails test
 ```
+
+## How it works
+
+- The app detects the user's session, meaning you can clear the session or open the app in the incognito mode to "refresh" the session and act as a new user.
+- As the user types in the search input, the Popular Searches section is updated, but the term will be updated instead of being created. This ensures that the term will be recorded only when the user finishes typing (considering that the user finishes when they close the window).
+- When a new user session is initialized, the Popular Searches data will still have other users' search data (a ranking), but when the user types, a new search term will be created.
