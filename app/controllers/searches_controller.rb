@@ -1,23 +1,27 @@
 class SearchesController < ApplicationController
   protect_from_forgery with: :exception
+  before_action :set_term, only: [:create]
 
   def index
     @popular_searches = SearchTerm.popular_searches
+
+    respond_to do |format|
+      format.html
+      format.json { render json: { popular_searches: @popular_searches } }
+    end
   end
 
   def create
-    term = sanitized_search_term
-
-    if valid_search_term?(term)
-      handle_valid_search_term(term)
-    else
-      handle_invalid_search_term
-    end
+    valid_search_term?(@term) ? handle_valid_search_term : handle_invalid_search_term
   rescue StandardError => e
     render_error_response("Internal Server Error: #{e.message}")
   end
 
   private
+
+  def set_term
+    @term = sanitized_search_term
+  end
 
   def sanitized_search_term
     params[:term].to_s.strip.downcase
@@ -27,10 +31,11 @@ class SearchesController < ApplicationController
     term.present? && term.length <= SearchTerm::MAX_TERM_LENGTH
   end
 
-  def handle_valid_search_term(term)
+  def handle_valid_search_term
     session_id = session.id.to_s
-    SearchTerm.create_or_update(term, session_id)
-    render_search_response('success', term)
+    last_typed_term = params[:last_typed_term]
+    SearchTerm.create_or_update(term: @term, session_id: session_id, last_typed_term: last_typed_term)
+    render_search_response('success', @term)
   end
 
   def handle_invalid_search_term
@@ -40,7 +45,15 @@ class SearchesController < ApplicationController
   end
 
   def render_search_response(status, term)
-    render json: {
+    render json: search_response_hash(status, term)
+  end
+
+  def render_error_response(message, status = :internal_server_error)
+    render json: error_response_hash(message), status: status
+  end
+
+  def search_response_hash(status, term)
+    {
       status: status,
       term: term,
       time: Time.now.strftime('%Y-%m-%d %H:%M:%S'),
@@ -48,7 +61,7 @@ class SearchesController < ApplicationController
     }
   end
 
-  def render_error_response(message, status = :internal_server_error)
-    render json: { status: 'error', message: message }, status: status
+  def error_response_hash(message)
+    { status: 'error', message: message }
   end
 end

@@ -9,6 +9,7 @@
   </form>
 
   <br/>
+
   <h2>Popular Searches</h2>
   <div id="popularSearches">
     <% @popular_searches.each do |search, count| %>
@@ -25,16 +26,14 @@
   const searchInput = document.getElementById('searchInput');
   const popularSearchesDiv = document.getElementById('popularSearches');
 
-  let searchInputValue = '';
+  let lastTypedTerm = '';
   let typingTimer;
   const typingDelay = 500;
 
   function search() {
     const searchTerm = searchInput.value.trim().toLowerCase();
 
-    if (searchTerm && searchTerm !== searchInputValue) {
-      searchInputValue = searchTerm;
-
+    if (searchTerm) {
       const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
       fetch('/searches', {
@@ -43,11 +42,12 @@
           'Content-Type': 'application/json',
           'X-CSRF-Token': csrfToken
         },
-        body: JSON.stringify({ term: searchTerm })
+        body: JSON.stringify({ term: searchTerm, last_typed_term: lastTypedTerm })
       })
         .then(response => response.json())
         .then(updatePopularSearches)
         .catch(handleError);
+      lastTypedTerm = searchTerm;
     }
   }
 
@@ -68,7 +68,7 @@
     if (Object.keys(results).length > 0) {
       Object.entries(results).forEach(search => {
         const paragraph = document.createElement('p');
-        paragraph.innerHTML = `${search[0]}: ${search[1]} times`;
+        paragraph.textContent = `${search[0]}: ${search[1]} times`;
         popularSearchesDiv.appendChild(paragraph);
       });
     }
